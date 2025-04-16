@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 1000px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
@@ -59,7 +59,6 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            font-size: 14px;
         }
         th, td {
             padding: 10px;
@@ -68,8 +67,6 @@
         }
         th {
             background: #f2f2f2;
-            position: sticky;
-            top: 0;
         }
         .copy-btn {
             background: #34a853;
@@ -77,39 +74,6 @@
         }
         .copy-btn:hover {
             background: #2d9248;
-        }
-        .tab-buttons {
-            display: flex;
-            margin-bottom: 15px;
-        }
-        .tab-button {
-            padding: 8px 15px;
-            background: #e0e0e0;
-            border: none;
-            cursor: pointer;
-            margin-right: 5px;
-            border-radius: 4px 4px 0 0;
-        }
-        .tab-button.active {
-            background: #4285f4;
-            color: white;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .details-table {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .error {
-            color: #d32f2f;
-            margin-top: 10px;
         }
     </style>
 </head>
@@ -119,415 +83,154 @@
         
         <div class="input-group">
             <input type="url" id="longUrl" placeholder="Enter your long URL here..." required>
-            <button id="shortenBtn">Shorten URL</button>
-            <div id="error" class="error"></div>
+            <button onclick="shortenUrl()">Shorten URL</button>
         </div>
         
         <div id="result" class="result">
             <p>Short URL: <a id="shortUrlLink" href="" target="_blank"></a></p>
-            <button id="copyBtn" class="copy-btn">Copy</button>
+            <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">Copy</button>
         </div>
         
         <div class="stats">
             <h2>URL Statistics</h2>
-            
-            <div class="tab-buttons">
-                <button class="tab-button active" data-tab="summary">Summary</button>
-                <button class="tab-button" data-tab="details">Click Details</button>
-            </div>
-            
-            <div id="summary" class="tab-content active">
-                <table id="urlTable">
-                    <thead>
-                        <tr>
-                            <th>Short URL</th>
-                            <th>Original URL</th>
-                            <th>Total Clicks</th>
-                            <th>Unique Visitors</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="urlTableBody"></tbody>
-                </table>
-            </div>
-            
-            <div id="details" class="tab-content">
-                <div id="detailsHeader" style="margin-bottom: 10px;">
-                    <h3 id="detailsTitle">Click Details</h3>
-                </div>
-                <div class="details-table">
-                    <table id="detailsTable">
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>Browser</th>
-                                <th>Version</th>
-                                <th>Platform</th>
-                                <th>Device</th>
-                                <th>Referrer</th>
-                            </tr>
-                        </thead>
-                        <tbody id="detailsTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
+            <table id="urlTable">
+                <thead>
+                    <tr>
+                        <th>Short URL</th>
+                        <th>Original URL</th>
+                        <th>Clicks</th>
+                    </tr>
+                </thead>
+                <tbody id="urlTableBody">
+                    <!-- URLs will be added here -->
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize elements
-            const shortenBtn = document.getElementById('shortenBtn');
-            const copyBtn = document.getElementById('copyBtn');
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const errorDiv = document.getElementById('error');
-            
-            // Initialize URL storage
-            if (!localStorage.getItem('urls')) {
-                localStorage.setItem('urls', JSON.stringify({}));
-            }
-            
-            // Check for redirect first
-            checkRedirect();
-            
-            // Set up event listeners
-            shortenBtn.addEventListener('click', shortenUrl);
-            copyBtn.addEventListener('click', copyToClipboard);
-            tabButtons.forEach(btn => {
-                btn.addEventListener('click', () => openTab(btn.dataset.tab));
-            });
-            
-            // Load data if not redirecting
-            if (!window.location.search.includes('u=')) {
-                displayUrls();
-                
-                // Check if showing details
-                const params = new URLSearchParams(window.location.search);
-                if (params.get('details')) {
-                    openTab('details');
-                    showDetails(params.get('details'));
-                }
-            }
-        });
-        
-        // Get current base URL
-        // function getBaseUrl() {
-        //     if (window.location.href.startsWith('http')) {
-        //         return window.location.origin + window.location.pathname;
-        //     }
-        //     // For local testing - change to your domain when deploying
-        //     return 'https://yourdomain.com';
-        // }
-
-        function getBaseUrl() {
-    // For GitHub Pages deployment
-    if (window.location.hostname.includes('github.io')) {
-        return 'https://rafiq9090.github.io/shortlink';
-    }
-    // For local testing
-    return window.location.href.split(/[?#]/)[0].replace(/\/[^/]*$/, '');
-}
-        
-        // Check for and process redirect
-        // function checkRedirect() {
-        //     const params = new URLSearchParams(window.location.search);
-        //     const shortCode = params.get('u');
-            
-        //     if (shortCode) {
-        //         try {
-        //             const urls = JSON.parse(localStorage.getItem('urls')) || {};
-        //             if (urls[shortCode]?.originalUrl) {
-        //                 // Record click
-        //                 const clickInfo = getBrowserInfo();
-        //                 urls[shortCode].clicks = urls[shortCode].clicks || [];
-        //                 urls[shortCode].clicks.push(clickInfo);
-        //                 localStorage.setItem('urls', JSON.stringify(urls));
-                        
-        //                 // Redirect
-        //                 window.location.href = urls[shortCode].originalUrl;
-        //                 return;
-        //             }
-        //         } catch (e) {
-        //             console.error("Redirect error:", e);
-        //         }
-                
-        //         // Show error if URL not found
-        //         document.body.innerHTML = `
-        //             <div class="container">
-        //                 <h1>URL Not Found</h1>
-        //                 <p>The short URL was not found in our system.</p>
-        //                 <p><a href="${getBaseUrl()}">Back to URL Shortener</a></p>
-        //             </div>
-        //         `;
-        //     }
-        // }
-
-        function checkRedirect() {
-    const params = new URLSearchParams(window.location.search);
-    const shortCode = params.get('u');
-    
-    if (shortCode) {
-        const urls = JSON.parse(localStorage.getItem('urls') || {});
-        if (urls[shortCode]?.originalUrl) {
-            // Add click tracking here
-            window.location.href = urls[shortCode].originalUrl;
-            return;
+        // Initialize URL storage if it doesn't exist
+        if (!localStorage.getItem('urls')) {
+            localStorage.setItem('urls', JSON.stringify({}));
         }
-    }
-}
-        
-        // Generate short code
+
+        // Load existing URLs when page loads
+        window.onload = function() {
+            displayUrls();
+        };
+
+        // Function to generate a short code
         function generateShortCode(url) {
+            // Simple hash function
             let hash = 0;
             for (let i = 0; i < url.length; i++) {
                 hash = ((hash << 5) - hash) + url.charCodeAt(i);
-                hash = hash & hash; // Convert to 32bit integer
+                hash |= 0; // Convert to 32bit integer
             }
+            // Convert to base36 and take first 6 chars
             return Math.abs(hash).toString(36).substring(0, 6);
         }
-        
-        // Shorten URL function
+
+        // Function to shorten URL
         function shortenUrl() {
-            const longUrlInput = document.getElementById('longUrl');
-            const longUrl = longUrlInput.value.trim();
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = '';
+            const longUrl = document.getElementById('longUrl').value.trim();
             
             if (!longUrl) {
-                showError('Please enter a URL');
+                alert('Please enter a URL');
                 return;
             }
             
-            try {
-                // Validate and process URL
-                let processedUrl = longUrl;
-                if (!/^https?:\/\//i.test(processedUrl)) {
-                    processedUrl = 'http://' + processedUrl;
-                }
-                
-                // Validate URL
-                new URL(processedUrl);
-                
-                // Generate short code
-                const shortCode = generateShortCode(longUrl);
-                const shortUrl = `${getBaseUrl()}?u=${shortCode}`;
-                
-                // Save to storage
-                const urls = JSON.parse(localStorage.getItem('urls'));
-                if (!urls[shortCode]) {
-                    urls[shortCode] = {
-                        originalUrl: processedUrl,
-                        clicks: [],
-                        created: new Date().toISOString()
-                    };
-                    localStorage.setItem('urls', JSON.stringify(urls));
-                }
-                
-                // Display result
-                document.getElementById('shortUrlLink').textContent = shortUrl;
-                document.getElementById('shortUrlLink').href = shortUrl;
-                document.getElementById('result').style.display = 'block';
-                
-                // Update table
-                displayUrls();
-                
-                // Clear input
-                longUrlInput.value = '';
-            } catch (error) {
-                showError('Please enter a valid URL (e.g., https://example.com)');
-                console.error('URL shortening error:', error);
+            // Add http:// if not present
+            let processedUrl = longUrl;
+            if (!/^https?:\/\//i.test(processedUrl)) {
+                processedUrl = 'http://' + processedUrl;
             }
+            
+            // Generate short code
+            const shortCode = generateShortCode(longUrl);
+            const shortUrl = window.location.href.split('?')[0] + '?u=' + shortCode;
+            
+            // Save to storage
+            const urls = JSON.parse(localStorage.getItem('urls'));
+            if (!urls[shortCode]) {
+                urls[shortCode] = {
+                    originalUrl: processedUrl,
+                    clicks: 0
+                };
+                localStorage.setItem('urls', JSON.stringify(urls));
+            }
+            
+            // Display result
+            document.getElementById('shortUrlLink').textContent = shortUrl;
+            document.getElementById('shortUrlLink').href = shortUrl;
+            document.getElementById('result').style.display = 'block';
+            
+            // Update table
+            displayUrls();
+            
+            // Clear input
+            document.getElementById('longUrl').value = '';
         }
-        
-        // Display all URLs in table
+
+        // Function to display all URLs in the table
         function displayUrls() {
-            try {
-                const urls = JSON.parse(localStorage.getItem('urls')) || {};
-                const tableBody = document.getElementById('urlTableBody');
-                tableBody.innerHTML = '';
+            const urls = JSON.parse(localStorage.getItem('urls'));
+            const tableBody = document.getElementById('urlTableBody');
+            tableBody.innerHTML = '';
+            
+            for (const [shortCode, data] of Object.entries(urls)) {
+                const shortUrl = window.location.href.split('?')[0] + '?u=' + shortCode;
                 
-                for (const [shortCode, data] of Object.entries(urls)) {
-                    if (!data?.originalUrl) continue;
-                    
-                    const shortUrl = `${getBaseUrl()}?u=${shortCode}`;
-                    const uniqueVisitors = new Set((data.clicks || []).map(c => c.userAgent)).size;
-                    
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td><a href="${shortUrl}" target="_blank">${shortCode}</a></td>
-                        <td><a href="${data.originalUrl}" target="_blank">${truncate(data.originalUrl, 40)}</a></td>
-                        <td>${(data.clicks || []).length}</td>
-                        <td>${uniqueVisitors}</td>
-                        <td><button onclick="showDetails('${shortCode}')">View Details</button></td>
-                    `;
-                    tableBody.appendChild(row);
-                }
-            } catch (error) {
-                console.error('Error displaying URLs:', error);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><a href="${shortUrl}" target="_blank">${shortCode}</a></td>
+                    <td><a href="${data.originalUrl}" target="_blank">${truncate(data.originalUrl, 40)}</a></td>
+                    <td>${data.clicks}</td>
+                `;
+                tableBody.appendChild(row);
             }
         }
-        
-        // Show click details for a URL
-        function showDetails(shortCode) {
-            try {
-                const urls = JSON.parse(localStorage.getItem('urls')) || {};
-                const urlData = urls[shortCode];
-                
-                if (!urlData) {
-                    console.error('URL data not found');
-                    return;
-                }
-                
-                // Update header
-                const detailsTitle = document.getElementById('detailsTitle');
-                if (detailsTitle) detailsTitle.textContent = `Details for ${shortCode}`;
-                
-                // Populate table
-                const detailsBody = document.getElementById('detailsTableBody');
-                detailsBody.innerHTML = '';
-                
-                // Sort clicks newest first
-                const sortedClicks = [...(urlData.clicks || [])].sort((a, b) => 
-                    new Date(b.timestamp) - new Date(a.timestamp));
-                
-                for (const click of sortedClicks) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${formatDate(click.timestamp)}</td>
-                        <td>${click.browser || 'Unknown'}</td>
-                        <td>${click.version || 'Unknown'}</td>
-                        <td>${click.platform || 'Unknown'}</td>
-                        <td>${click.device || 'Unknown'}</td>
-                        <td>${truncate(click.referrer || 'Direct', 30)}</td>
-                    `;
-                    detailsBody.appendChild(row);
-                }
-                
-                // Switch to details tab
-                openTab('details');
-                
-                // Update URL
-                const newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('details', shortCode);
-                window.history.pushState({}, '', newUrl);
-            } catch (error) {
-                console.error('Error showing details:', error);
-            }
-        }
-        
-        // Browser detection
-        function getBrowserInfo() {
-            const ua = navigator.userAgent;
-            let browser = "Unknown", version = "Unknown", platform = "Unknown", device = "Desktop";
-            
-            // Browser detection
-            const browsers = [
-                { name: "Firefox", pattern: /Firefox\/(\d+)/ },
-                { name: "Edge", pattern: /Edge\/(\d+)/ },
-                { name: "Chrome", pattern: /Chrome\/(\d+)/ },
-                { name: "Safari", pattern: /Version\/(\d+).*Safari/ }
-            ];
-            
-            for (const {name, pattern} of browsers) {
-                const match = ua.match(pattern);
-                if (match) {
-                    browser = name;
-                    version = match[1];
-                    break;
-                }
-            }
-            
-            // Platform detection
-            if (ua.includes("Windows")) platform = "Windows";
-            else if (ua.includes("Mac")) platform = "Mac";
-            else if (ua.includes("Linux")) platform = "Linux";
-            else if (ua.includes("Android")) {
-                platform = "Android";
-                device = "Mobile";
-            } else if (ua.match(/iPhone|iPad|iPod/)) {
-                platform = "iOS";
-                device = "Mobile";
-            }
-            
-            return {
-                browser,
-                version,
-                platform,
-                device,
-                referrer: document.referrer || "Direct",
-                timestamp: new Date().toISOString(),
-                userAgent: ua
-            };
-        }
-        
-        // Tab navigation
-        function openTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Deactivate all buttons
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Activate selected tab
-            const tab = document.getElementById(tabName);
-            if (tab) tab.classList.add('active');
-            
-            // Activate button
-            const activeBtn = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
-            if (activeBtn) activeBtn.classList.add('active');
-        }
-        
-        // Copy to clipboard
-        function copyToClipboard() {
-            const shortUrl = document.getElementById('shortUrlLink')?.href;
-            if (!shortUrl) {
-                showError('No URL to copy');
-                return;
-            }
-            
-            navigator.clipboard.writeText(shortUrl)
-                .then(() => {
-                    const copyBtn = document.getElementById('copyBtn');
-                    if (copyBtn) {
-                        copyBtn.textContent = 'Copied!';
-                        setTimeout(() => {
-                            copyBtn.textContent = 'Copy';
-                        }, 2000);
-                    }
-                })
-                .catch(err => {
-                    showError('Failed to copy URL');
-                    console.error('Copy failed:', err);
-                });
-        }
-        
-        // Helper functions
+
+        // Helper function to truncate long text
         function truncate(str, n) {
-            return str?.length > n ? str.substring(0, n-1) + '...' : str || "None";
+            return (str.length > n) ? str.substring(0, n-1) + '...' : str;
         }
+
+        // Function to copy short URL to clipboard
+        function copyToClipboard() {
+            const shortUrl = document.getElementById('shortUrlLink').href;
+            navigator.clipboard.writeText(shortUrl).then(() => {
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+
+        // Check if page was loaded with a short URL
+        const params = new URLSearchParams(window.location.search);
+        const shortCode = params.get('u');
         
-        function formatDate(isoString) {
-            try {
-                return new Date(isoString).toLocaleString();
-            } catch {
-                return isoString;
+        if (shortCode) {
+            const urls = JSON.parse(localStorage.getItem('urls'));
+            if (urls[shortCode]) {
+                // Increment click count
+                urls[shortCode].clicks++;
+                localStorage.setItem('urls', JSON.stringify(urls));
+                
+                // Redirect to original URL
+                window.location.href = urls[shortCode].originalUrl;
+            } else {
+                document.body.innerHTML = `
+                    <div class="container">
+                        <h1>URL Not Found</h1>
+                        <p>The requested short URL was not found.</p>
+                        <p><a href="${window.location.href.split('?')[0]}">Back to URL Shortener</a></p>
+                    </div>
+                `;
             }
         }
-        
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            if (errorDiv) {
-                errorDiv.textContent = message;
-                setTimeout(() => errorDiv.textContent = '', 5000);
-            }
-        }
-        
-        // Make showDetails available globally for button clicks
-        window.showDetails = showDetails;
     </script>
 </body>
 </html>
