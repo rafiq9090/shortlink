@@ -212,12 +212,22 @@
         
         // Get current base URL
         function getBaseUrl() {
-            if (window.location.href.startsWith('http')) {
-                return window.location.origin + window.location.pathname;
-            }
-            // For local testing - change to your domain when deploying
-            return 'https://yourdomain.com';
-        }
+    // For Facebook domain (you'll need to configure this properly)
+    if (window.location.hostname.includes('facebook.com')) {
+        return 'https://your-facebook-domain.com'; // Replace with actual URL
+    }
+    // For GitHub Pages deployment
+    if (window.location.hostname.includes('github.io')) {
+        return window.location.origin + window.location.pathname
+            .replace(/\/[^/]*$/, '');
+    }
+    // For your custom domain
+    if (window.location.hostname === 'onbooks.live') {
+        return 'https://onbooks.live';
+    }
+    // Final fallback
+    return window.location.origin || window.location.href.split(/[?#]/)[0].replace(/\/[^/]*$/, '');
+}
         
         // Check for and process redirect
         function checkRedirect() {
