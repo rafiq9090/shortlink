@@ -211,57 +211,70 @@
         });
         
         // Get current base URL
+        // function getBaseUrl() {
+        //     if (window.location.href.startsWith('http')) {
+        //         return window.location.origin + window.location.pathname;
+        //     }
+        //     // For local testing - change to your domain when deploying
+        //     return 'https://yourdomain.com';
+        // }
+
         function getBaseUrl() {
-    // For Facebook domain (you'll need to configure this properly)
-    if (window.location.hostname.includes('facebook.com')) {
-        return 'https://your-facebook-domain.com'; // Replace with actual URL
-    }
     // For GitHub Pages deployment
     if (window.location.hostname.includes('github.io')) {
-        return window.location.origin + window.location.pathname
-            .replace(/\/[^/]*$/, '');
+        return 'https://rafiq9090.github.io/shortlink';
     }
-    // For your custom domain
-    if (window.location.hostname === 'onbooks.live') {
-        return 'https://onbooks.live';
-    }
-    // Final fallback
-    return window.location.origin || window.location.href.split(/[?#]/)[0].replace(/\/[^/]*$/, '');
+    // For local testing
+    return window.location.href.split(/[?#]/)[0].replace(/\/[^/]*$/, '');
 }
         
         // Check for and process redirect
-        function checkRedirect() {
-            const params = new URLSearchParams(window.location.search);
-            const shortCode = params.get('u');
+        // function checkRedirect() {
+        //     const params = new URLSearchParams(window.location.search);
+        //     const shortCode = params.get('u');
             
-            if (shortCode) {
-                try {
-                    const urls = JSON.parse(localStorage.getItem('urls')) || {};
-                    if (urls[shortCode]?.originalUrl) {
-                        // Record click
-                        const clickInfo = getBrowserInfo();
-                        urls[shortCode].clicks = urls[shortCode].clicks || [];
-                        urls[shortCode].clicks.push(clickInfo);
-                        localStorage.setItem('urls', JSON.stringify(urls));
+        //     if (shortCode) {
+        //         try {
+        //             const urls = JSON.parse(localStorage.getItem('urls')) || {};
+        //             if (urls[shortCode]?.originalUrl) {
+        //                 // Record click
+        //                 const clickInfo = getBrowserInfo();
+        //                 urls[shortCode].clicks = urls[shortCode].clicks || [];
+        //                 urls[shortCode].clicks.push(clickInfo);
+        //                 localStorage.setItem('urls', JSON.stringify(urls));
                         
-                        // Redirect
-                        window.location.href = urls[shortCode].originalUrl;
-                        return;
-                    }
-                } catch (e) {
-                    console.error("Redirect error:", e);
-                }
+        //                 // Redirect
+        //                 window.location.href = urls[shortCode].originalUrl;
+        //                 return;
+        //             }
+        //         } catch (e) {
+        //             console.error("Redirect error:", e);
+        //         }
                 
-                // Show error if URL not found
-                document.body.innerHTML = `
-                    <div class="container">
-                        <h1>URL Not Found</h1>
-                        <p>The short URL was not found in our system.</p>
-                        <p><a href="${getBaseUrl()}">Back to URL Shortener</a></p>
-                    </div>
-                `;
-            }
+        //         // Show error if URL not found
+        //         document.body.innerHTML = `
+        //             <div class="container">
+        //                 <h1>URL Not Found</h1>
+        //                 <p>The short URL was not found in our system.</p>
+        //                 <p><a href="${getBaseUrl()}">Back to URL Shortener</a></p>
+        //             </div>
+        //         `;
+        //     }
+        // }
+
+        function checkRedirect() {
+    const params = new URLSearchParams(window.location.search);
+    const shortCode = params.get('u');
+    
+    if (shortCode) {
+        const urls = JSON.parse(localStorage.getItem('urls') || {});
+        if (urls[shortCode]?.originalUrl) {
+            // Add click tracking here
+            window.location.href = urls[shortCode].originalUrl;
+            return;
         }
+    }
+}
         
         // Generate short code
         function generateShortCode(url) {
